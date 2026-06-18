@@ -1,0 +1,62 @@
+{{- if .Values.ingestionJob.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "rag-assistant.fullname" . }}-ingest
+  labels:
+    {{- include "rag-assistant.labels" . | nindent 4 }}
+  annotations:
+    # Re-run ingestion on every helm upgrade by including the chart version in the name
+    "helm.sh/chart": {{ include "rag-assistant.chart" . | quote }}
+spec:
+  backoffLimit: {{ .Values.ingestionJob.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "rag-assistant.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ingestion
+    spec:
+      restartPolicy: {{ .Values.ingestionJob.restartPolicy }}
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      containers:
+        - name: ingest
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - scripts/ingest.py
+            {{- if eq .Values.ingestionJob.forceReindex "true" }}
+            - "--force"
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "rag-assistant.fullname" . }}-config
+            - secretRef:
+                name: {{ .Values.anthropic.apiKeySecretName }}
+          {{- if .Values.persistence.enabled }}
+          volumeMounts:
+            - name: rag-data
+              mountPath: {{ .Values.persistence.mountPath }}
+          {{- end }}
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 2000m
+              memory: 6Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      {{- if .Values.persistence.enabled }}
+      volumes:
+        - name: rag-data
+          persistentVolumeClaim:
+            claimName: {{ include "rag-assistant.fullname" . }}-data
+      {{- end }}
+{{- end }}

@@ -1,0 +1,105 @@
+[
+  {
+    "question": "What is the purpose of a Kubernetes Deployment?",
+    "ground_truth": "A Deployment provides declarative updates for Pods and ReplicaSets. You describe a desired state in a Deployment, and the Deployment Controller changes the actual state to the desired state at a controlled rate. Deployments support rolling updates, rollback, pause and resume, and scaling.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"]
+  },
+  {
+    "question": "What is a Kubernetes Pod?",
+    "ground_truth": "A Pod is the smallest deployable unit of computing that you can create and manage in Kubernetes. A Pod is a group of one or more containers, with shared storage and network resources, and a specification for how to run the containers.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/pods/"]
+  },
+  {
+    "question": "What is the difference between a ClusterIP and a NodePort Service?",
+    "ground_truth": "ClusterIP exposes the Service on a cluster-internal IP, making the Service only reachable from within the cluster. NodePort exposes the Service on each Node's IP at a static port, making the Service accessible from outside the cluster by requesting NodeIP:NodePort.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/services-networking/service/"]
+  },
+  {
+    "question": "What is a ConfigMap used for in Kubernetes?",
+    "ground_truth": "A ConfigMap is an API object used to store non-confidential data in key-value pairs. Pods can consume ConfigMaps as environment variables, command-line arguments, or as configuration files in a volume. A ConfigMap allows you to decouple environment-specific configuration from your container images.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/configuration/configmap/"]
+  },
+  {
+    "question": "What is a Kubernetes Secret and how does it differ from a ConfigMap?",
+    "ground_truth": "A Secret is an object that contains a small amount of sensitive data such as a password, a token, or a key. Unlike ConfigMaps, Secrets are intended for confidential data. Secret values are base64-encoded and can be accessed by Pods as environment variables or mounted as files.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/configuration/secret/"]
+  },
+  {
+    "question": "What is a PersistentVolume in Kubernetes?",
+    "ground_truth": "A PersistentVolume (PV) is a piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes. It is a resource in the cluster just like a node is a cluster resource. PVs have a lifecycle independent of any individual Pod that uses the PV.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/storage/persistent-volumes/"]
+  },
+  {
+    "question": "What is a StatefulSet and when should you use it?",
+    "ground_truth": "StatefulSet is the workload API object used to manage stateful applications. Unlike a Deployment, a StatefulSet maintains a sticky identity for each Pod. These Pods are created from the same spec but are not interchangeable — each has a persistent identifier that it maintains across any rescheduling. Use StatefulSets for applications that require stable persistent storage, ordered deployment/scaling, and stable network identifiers.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/"]
+  },
+  {
+    "question": "What is a DaemonSet in Kubernetes?",
+    "ground_truth": "A DaemonSet ensures that all (or some) Nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. As nodes are removed from the cluster, those Pods are garbage collected. Typical uses include running a cluster storage daemon on every node, running a logs collection daemon on every node, or running a node monitoring daemon.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/"]
+  },
+  {
+    "question": "What is a Kubernetes Job?",
+    "ground_truth": "A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate. As Pods successfully complete, the Job tracks the successful completions. When a specified number of successful completions is reached, the Job is complete.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/controllers/job/"]
+  },
+  {
+    "question": "What is a CronJob in Kubernetes?",
+    "ground_truth": "A CronJob creates Jobs on a repeating schedule. CronJobs are meant for performing regular scheduled actions such as backups, report generation, and so on. One CronJob object is like one line of a crontab (cron table) file on a Unix system. It runs a Job periodically on a given schedule, written in Cron format.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/"]
+  },
+  {
+    "question": "How does Horizontal Pod Autoscaling work in Kubernetes?",
+    "ground_truth": "The Horizontal Pod Autoscaler automatically scales the number of Pods in a replication controller, deployment, replica set or stateful set based on observed CPU utilization or on custom metrics. The HPA controller periodically checks the metric values, computes the desired number of replicas, and scales the target resource.",
+    "reference_urls": ["https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/"]
+  },
+  {
+    "question": "What is a NetworkPolicy in Kubernetes?",
+    "ground_truth": "A NetworkPolicy is a specification of how groups of Pods are allowed to communicate with each other and other network endpoints. NetworkPolicy resources use labels to select Pods and define rules which specify what traffic is allowed to the selected Pods. By default, Pods are non-isolated; they accept traffic from any source.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/services-networking/network-policies/"]
+  },
+  {
+    "question": "How do you assign a Pod to a specific Node in Kubernetes?",
+    "ground_truth": "You can constrain a Pod so that it is restricted to run on particular nodes using nodeSelector, node affinity, or nodeName. nodeSelector provides a simple way to constrain Pods to nodes with specific labels. Node affinity provides more expressive rules. nodeName is the simplest form and specifies the exact node name.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/"]
+  },
+  {
+    "question": "What are liveness and readiness probes in Kubernetes?",
+    "ground_truth": "A liveness probe determines if a container is running. If the liveness probe fails, the kubelet kills the container and the container is subjected to its restart policy. A readiness probe determines if a container is ready to accept traffic. If a readiness probe fails, the endpoints controller removes the Pod's IP address from the endpoints of all Services that match the Pod.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/"]
+  },
+  {
+    "question": "What is a StorageClass in Kubernetes?",
+    "ground_truth": "A StorageClass provides a way for administrators to describe the classes of storage they offer. Different classes might map to quality-of-service levels, backup policies, or arbitrary policies determined by the cluster administrators. StorageClasses enable dynamic provisioning of PersistentVolumes.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/storage/storage-classes/"]
+  },
+  {
+    "question": "What is an Ingress in Kubernetes?",
+    "ground_truth": "An Ingress is an API object that manages external access to the services in a cluster, typically HTTP. Ingress may provide load balancing, SSL termination and name-based virtual hosting. An Ingress controller is responsible for fulfilling the Ingress, usually with a load balancer.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/services-networking/ingress/"]
+  },
+  {
+    "question": "What is RBAC and why is it important in Kubernetes?",
+    "ground_truth": "Role-Based Access Control (RBAC) is a method of regulating access to computer or network resources based on the roles of individual users within an organization. In Kubernetes, RBAC uses the rbac.authorization.k8s.io API group to drive authorization decisions. RBAC allows you to define who can do what on which resources.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/security/rbac-good-practices/"]
+  },
+  {
+    "question": "What are the phases of a Pod lifecycle?",
+    "ground_truth": "A Pod goes through several phases: Pending (the Pod has been accepted but containers are not yet running), Running (the Pod has been bound to a node and all containers have been created), Succeeded (all containers have terminated successfully), Failed (all containers have terminated and at least one terminated in failure), and Unknown.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/"]
+  },
+  {
+    "question": "How does a rolling update work in a Kubernetes Deployment?",
+    "ground_truth": "During a rolling update, the Deployment controller creates a new ReplicaSet with the updated Pod template and scales it up while scaling down the old ReplicaSet. The maxUnavailable and maxSurge fields control how many Pods can be unavailable and how many extra Pods can be created during the update. This allows updates with zero downtime.",
+    "reference_urls": ["https://kubernetes.io/docs/concepts/workloads/controllers/deployment/"]
+  },
+  {
+    "question": "What is the difference between a Deployment and a StatefulSet?",
+    "ground_truth": "Deployments are for stateless applications where each Pod is interchangeable. StatefulSets are for stateful applications that require stable network identifiers, stable persistent storage, and ordered deployment and scaling. StatefulSet Pods have predictable names (e.g., pod-0, pod-1) while Deployment Pods have random suffixes.",
+    "reference_urls": [
+      "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+      "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/"
+    ]
+  }
+]

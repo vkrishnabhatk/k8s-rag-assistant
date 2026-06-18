@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-assistant"
+version = "0.1.0"
+description = "Production-grade RAG Q&A assistant over Kubernetes documentation"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi~=0.115",
+    "uvicorn[standard]~=0.32",
+    "anthropic~=0.40",
+    "sentence-transformers~=3.3",
+    "faiss-cpu~=1.9",
+    "pydantic-settings~=2.6",
+    "structlog~=24.4",
+    "slowapi~=0.1.9",
+    "sse-starlette~=2.1",
+    "httpx~=0.28",
+    "beautifulsoup4~=4.12",
+    "numpy~=2.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest~=8.3",
+    "pytest-cov~=6.0",
+    "pytest-asyncio~=0.24",
+    "httpx~=0.28",
+    "mypy~=1.13",
+    "ruff~=0.8",
+    "detect-secrets~=1.5",
+    "pre-commit~=4.0",
+]
+eval = [
+    "ragas~=0.2",
+    "langchain-anthropic~=0.3",
+    "datasets~=3.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# ── Ruff ──────────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["rag_assistant"]
+
+# ── Mypy ──────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+exclude = ["tests/", "scripts/"]
+
+# ── Pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --cov=rag_assistant --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+source = ["src/rag_assistant"]
+omit = ["*/evaluation/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

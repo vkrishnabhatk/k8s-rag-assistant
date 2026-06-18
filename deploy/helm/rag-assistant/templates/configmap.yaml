@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rag-assistant.fullname" . }}-config
+  labels:
+    {{- include "rag-assistant.labels" . | nindent 4 }}
+data:
+  ANTHROPIC_MODEL: {{ .Values.config.modelName | quote }}
+  ANTHROPIC_MAX_TOKENS: {{ .Values.config.maxTokens | quote }}
+  EMBEDDING_MODEL: {{ .Values.config.embeddingModel | quote }}
+  FAISS_INDEX_PATH: {{ .Values.persistence.mountPath }}/faiss.index
+  FAISS_METADATA_PATH: {{ .Values.persistence.mountPath }}/chunks.pkl
+  RETRIEVAL_TOP_K: {{ .Values.config.retrievalTopK | quote }}
+  RETRIEVAL_CONFIDENCE_THRESHOLD: {{ .Values.config.retrievalConfidenceThreshold | quote }}
+  CHUNK_SIZE_WORDS: {{ .Values.config.chunkSizeWords | quote }}
+  CHUNK_OVERLAP_WORDS: {{ .Values.config.chunkOverlapWords | quote }}
+  GUARDRAIL_OVERLAP_THRESHOLD: {{ .Values.config.guardrailOverlapThreshold | quote }}
+  RATE_LIMIT_PER_MINUTE: {{ .Values.config.rateLimitPerMinute | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}

@@ -1,0 +1,66 @@
+image:
+  repository: ghcr.io/vkrishnabhatk/k8s-rag-assistant
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: rag-assistant.example.com
+  tls: []
+  # tls:
+  #   - secretName: rag-assistant-tls
+  #     hosts:
+  #       - rag-assistant.example.com
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+persistence:
+  enabled: true
+  # Empty string = cluster default storage class.
+  # Set to an RWX-capable storage class (e.g. "efs-sc", "nfs-client") for multi-replica deployments.
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  mountPath: /app/data
+
+anthropic:
+  apiKeySecretName: rag-assistant-secrets
+  apiKeySecretKey: ANTHROPIC_API_KEY
+
+config:
+  modelName: claude-haiku-4-5-20251001
+  maxTokens: "1024"
+  embeddingModel: sentence-transformers/all-MiniLM-L6-v2
+  retrievalTopK: "5"
+  retrievalConfidenceThreshold: "0.3"
+  chunkSizeWords: "500"
+  chunkOverlapWords: "50"
+  guardrailOverlapThreshold: "0.15"
+  rateLimitPerMinute: "10"
+  logLevel: INFO
+
+ingestionJob:
+  enabled: true
+  restartPolicy: OnFailure
+  backoffLimit: 3
+  # Set to "true" to force re-ingestion even if index already exists
+  forceReindex: "false"
