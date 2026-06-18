@@ -60,6 +60,8 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 exclude = ["tests/", "scripts/"]
+# FastAPI and slowapi route decorators are not fully typed upstream
+disable_error_code = ["untyped-decorator"]
 
 # ── Pytest ────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
