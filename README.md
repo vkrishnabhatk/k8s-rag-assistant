@@ -259,6 +259,8 @@ The `rag_data` named volume is shared between the `ingest` and `api` services so
 
 ## Kubernetes (Helm) Deployment
 
+> **Note**: The Helm chart and Kubernetes manifests are included for completeness and follow production best practices (HPA, PVC, ingestion Job, RBAC, TLS). They have not been validated against a live cluster. If you deploy this and run into issues, please open an issue.
+
 ### Pre-requisites
 
 - A running Kubernetes cluster (`kubectl cluster-info` should succeed)
