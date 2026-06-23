@@ -1,5 +1,6 @@
 image:
   repository: ghcr.io/vkrishnabhatk/k8s-rag-assistant
+  # Pin to an exact release tag in production (e.g. 0.2.1). "latest" is the default fallback only.
   tag: latest
   pullPolicy: IfNotPresent
 

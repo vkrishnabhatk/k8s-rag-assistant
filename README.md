@@ -171,7 +171,8 @@ Returns a complete JSON response.
     {
       "url": "https://kubernetes.io/docs/concepts/services-networking/service/",
       "title": "Service",
-      "score": 0.87
+      "score": 0.87,
+      "chunk_index": 0
     }
   ],
   "validation": {
@@ -180,7 +181,15 @@ Returns a complete JSON response.
     "confidence_score": 0.87,
     "overlap_score": 0.31
   },
-  "latency_ms": 1240.5
+  "latency_ms": 1240.5,
+  "request_id": "daaa367e-...",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 3434,
+    "output_tokens": 246,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0
+  }
 }
 ```
 
@@ -251,9 +260,7 @@ curl http://localhost:8000/health    # → {"status":"ok"}
 curl http://localhost:8000/ready     # → {"status":"ready"}
 
 # Force a full re-index
-docker-compose run --rm \
-  -e FORCE_REINDEX=true \
-  --profile ingest ingest python scripts/ingest.py --force
+docker-compose run --rm --profile ingest ingest python scripts/ingest.py --force
 ```
 
 The `rag_data` named volume is shared between the `ingest` and `api` services so the FAISS index persists across container restarts.
@@ -389,9 +396,9 @@ helm upgrade --install rag-assistant deploy/helm/rag-assistant/ \
 
 ```bash
 helm uninstall rag-assistant
-kubectl delete secret my-anthropic-secret
+kubectl delete secret rag-assistant-secrets
 # PVC is retained by default — delete manually if you want to wipe the index:
-kubectl delete pvc rag-assistant-data
+kubectl delete pvc rag-assistant-rag-assistant-data
 ```
 
 ## Evaluation (RAGAS)

@@ -6,7 +6,8 @@ metadata:
   labels:
     {{- include "rag-assistant.labels" . | nindent 4 }}
   annotations:
-    # Re-run ingestion on every helm upgrade by including the chart version in the name
+    # Job name is static per release — upgrade does NOT re-run ingestion unless the job is deleted first.
+    # To force re-ingestion: kubectl delete job <name> && helm upgrade ... --set ingestionJob.forceReindex=true
     "helm.sh/chart": {{ include "rag-assistant.chart" . | quote }}
 spec:
   backoffLimit: {{ .Values.ingestionJob.backoffLimit }}
