@@ -12,7 +12,7 @@ _DEFAULT_K8S_URLS: list[str] = [
     "https://kubernetes.io/docs/concepts/overview/components/",
     "https://kubernetes.io/docs/concepts/architecture/nodes/",
     "https://kubernetes.io/docs/concepts/architecture/control-plane-node-communication/",
-    "https://kubernetes.io/docs/concepts/architecture/etcd/",
+    "https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/",
     # ── Workloads ─────────────────────────────────────────────────────────────
     "https://kubernetes.io/docs/concepts/workloads/pods/",
     "https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/",

@@ -27,8 +27,8 @@ COPY --from=builder /install /usr/local
 
 WORKDIR /app
 
-# Create non-root user
-RUN groupadd -r appgroup && useradd -r -g appgroup -u 1000 appuser
+# Create non-root user with a real home directory
+RUN groupadd -r appgroup && useradd -r -g appgroup -u 1000 -d /home/appuser -m appuser
 
 # Copy application source and scripts
 COPY --chown=appuser:appgroup src/ src/
@@ -37,7 +37,10 @@ COPY --chown=appuser:appgroup scripts/ scripts/
 # Data directory (FAISS index written here at runtime via PVC mount)
 RUN mkdir -p data && chown appuser:appgroup data
 
+# Pre-download the embedding model so there's no network dependency at runtime
+ENV HF_HOME=/home/appuser/.cache/huggingface
 USER appuser
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 
 EXPOSE 8000
 

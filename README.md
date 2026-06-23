@@ -259,9 +259,50 @@ The `rag_data` named volume is shared between the `ingest` and `api` services so
 
 ## Kubernetes (Helm) Deployment
 
-> **Note**: The Helm chart and Kubernetes manifests are included for completeness and follow production best practices (HPA, PVC, ingestion Job, RBAC, TLS). They have not been validated against a live cluster. If you deploy this and run into issues, please open an issue.
+> **Local testing tip**: Use [kind](https://kind.sigs.k8s.io/) to test the Helm chart locally without a cloud cluster. See the step-by-step guide below.
 
-### Pre-requisites
+### Local testing with kind
+
+The easiest way to validate the Helm chart locally — no cloud account required:
+
+```bash
+# 1. Install kind
+brew install kind
+
+# 2. Create a cluster and load the local image
+kind create cluster --name rag-assistant
+make docker-build
+kind load docker-image rag-assistant:local --name rag-assistant
+
+# 3. Deploy (imagePullPolicy: Never uses the pre-loaded image)
+kubectl create secret generic rag-assistant-secrets \
+  --from-literal=ANTHROPIC_API_KEY=sk-ant-...
+kubectl annotate secret rag-assistant-secrets \
+  meta.helm.sh/release-name=rag-assistant \
+  meta.helm.sh/release-namespace=default
+kubectl label secret rag-assistant-secrets \
+  app.kubernetes.io/managed-by=Helm
+
+helm upgrade --install rag-assistant deploy/helm/rag-assistant/ \
+  --set image.repository=rag-assistant \
+  --set image.tag=local \
+  --set image.pullPolicy=Never \
+  --set replicaCount=1 \
+  --set autoscaling.enabled=false \
+  --set ingress.enabled=false \
+  --set anthropic.apiKeySecretName=rag-assistant-secrets
+
+# 4. Wait for ingestion, then restart the API pod to load the index
+kubectl logs -f job/rag-assistant-rag-assistant-ingest
+kubectl rollout restart deployment/rag-assistant-rag-assistant
+kubectl rollout status deployment/rag-assistant-rag-assistant
+
+# 5. Test
+kubectl port-forward svc/rag-assistant-rag-assistant 8080:8000
+curl http://localhost:8080/ready   # → {"status":"ready"}
+```
+
+### Cloud / CI cluster pre-requisites
 
 - A running Kubernetes cluster (`kubectl cluster-info` should succeed)
 - The Docker image pushed to a registry accessible from the cluster (CI/CD does this automatically via `cd.yml` on merge to `main`)
