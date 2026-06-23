@@ -53,13 +53,28 @@ def test_high_confidence_passes_guardrail_3():
     assert result.guardrail_triggered is None
 
 
-# ── Guardrail 1: out-of-context detection ─────────────────────────────────────
+# ── Guardrail 1: general knowledge detection ──────────────────────────────────
 
 
-def test_out_of_context_phrase_fails_guardrail_1():
+def test_general_knowledge_marker_passes_with_flag():
     v = _validator()
     result = v.validate_response(
-        "I don't have enough information to answer this.",
+        "Based on general Kubernetes knowledge: A node pool is a group of nodes "
+        "that share the same configuration in managed Kubernetes services.",
+        _chunks(),
+        max_score=0.8,
+    )
+    assert result.passed
+    assert result.guardrail_triggered == "general_knowledge"
+
+
+# ── Guardrail 2: out-of-scope detection ───────────────────────────────────────
+
+
+def test_short_out_of_scope_phrase_fails():
+    v = _validator()
+    result = v.validate_response(
+        "This question is outside the scope of Kubernetes documentation.",
         _chunks(),
         max_score=0.8,
     )
@@ -67,25 +82,28 @@ def test_out_of_context_phrase_fails_guardrail_1():
     assert result.guardrail_triggered == "out_of_context"
 
 
-def test_variant_out_of_context_phrase_detected():
+def test_long_response_with_out_of_scope_phrase_not_blocked():
+    # A response that mentions "outside the scope" but goes on to answer
+    # should NOT trigger out_of_context (word count > 30)
     v = _validator()
-    result = v.validate_response(
-        "The answer is not in the provided context.",
-        _chunks(),
-        max_score=0.8,
+    long_answer = (
+        "This question is outside the scope of Kubernetes documentation. "
+        "However, based on general Kubernetes knowledge: node pools are groups "
+        "of nodes in managed Kubernetes services like GKE, EKS, and AKS that "
+        "share common configuration such as machine type and operating system."
     )
-    assert not result.passed
-    assert result.guardrail_triggered == "out_of_context"
+    result = v.validate_response(long_answer, _chunks(), max_score=0.8)
+    assert result.guardrail_triggered != "out_of_context"
 
 
-def test_grounded_answer_passes_guardrail_1():
+def test_grounded_answer_passes_guardrail():
     v = _validator()
     result = v.validate_response(
         "A Deployment provides declarative updates for Pods and ReplicaSets in Kubernetes.",
         _chunks(),
         max_score=0.8,
     )
-    assert result.guardrail_triggered != "out_of_context"
+    assert result.guardrail_triggered not in ("out_of_context", "general_knowledge")
 
 
 # ── Guardrail 2: word overlap ─────────────────────────────────────────────────
