@@ -27,9 +27,7 @@ htmlcov/
 *.env.local
 
 # Runtime data (written by ingest)
-data/faiss.index
-data/chunks.pkl
-data/eval_report.json
+data/
 
 # IDE
 .idea/
