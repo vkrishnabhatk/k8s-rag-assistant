@@ -2,8 +2,8 @@ apiVersion: v2
 name: rag-assistant
 description: Production-grade RAG Q&A assistant over Kubernetes documentation
 type: application
-version: 0.2.1
-appVersion: "0.2.1"
+version: 0.2.2
+appVersion: "0.2.2"
 keywords:
   - rag
   - kubernetes

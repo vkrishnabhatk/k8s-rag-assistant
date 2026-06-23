@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rag-assistant"
-version = "0.2.1"
+version = "0.2.2"
 description = "Production-grade RAG Q&A assistant over Kubernetes documentation"
 requires-python = ">=3.12"
 dependencies = [
