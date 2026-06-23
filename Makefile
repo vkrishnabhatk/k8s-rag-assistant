@@ -1,5 +1,5 @@
-.PHONY: ingest serve test evaluate lint type-check format \
-        docker-build docker-up docker-ingest helm-lint install install-eval release
+.PHONY: ingest serve ui test evaluate lint type-check format \
+        docker-build docker-up docker-ingest helm-lint install install-eval install-ui release
 
 PYTHON  := python
 UVICORN := uvicorn
@@ -13,6 +13,9 @@ install:
 install-eval:
 	pip install -e ".[dev,eval]"
 
+install-ui:
+	pip install -e ".[ui]"
+
 ingest:
 	$(PYTHON) scripts/ingest.py
 
@@ -25,6 +28,9 @@ serve:
 		--host 0.0.0.0 \
 		--port 8000 \
 		--reload
+
+ui:
+	streamlit run streamlit_app.py
 
 # ── Testing ────────────────────────────────────────────────────────────────────
 

@@ -8,23 +8,27 @@ A production-grade RAG (Retrieval-Augmented Generation) Q&A assistant over Kuber
   User Query
       │
       ▼
-  FastAPI /v1/query
+  FastAPI /v1/query  (or /v1/query/stream for SSE)
       │
       ├─► Embedder (all-MiniLM-L6-v2, 384-dim, CPU)
       │       │ query vector (L2-normalized)
       │       ▼
       │   FAISS IndexFlatIP ──► top-k Chunks + cosine scores
       │
-      ├─► Guardrail: max_score < 0.3 → "Insufficient context" (no LLM call)
+      ├─► Guardrail 1 (pre-LLM): max_score < 0.3 → "Insufficient context" (no LLM call)
       │
-      ├─► PromptBuilder
+      ├─► PromptBuilder — hybrid mode
+      │       ├── DOCUMENTATION MODE: answer from retrieved context + cite sources
+      │       ├── GENERAL KNOWLEDGE MODE: Claude answers from training ("Based on general
+      │       │   Kubernetes knowledge:") when docs don't cover the topic
       │       └── cache_control on system + context blocks (0.1× token cost on cache hit)
       │
-      ├─► Anthropic Claude (haiku, prompt caching enabled)
-      │       │ answer tokens
+      ├─► Anthropic Claude Haiku 4.5 (prompt caching enabled)
+      │       │ answer tokens (JSON-encoded over SSE)
       │       ▼
-      ├─► Guardrail: out-of-context phrase detection
-      ├─► Guardrail: Jaccard word overlap check (answer vs. retrieved context)
+      ├─► Guardrail 2: "Based on general Kubernetes knowledge:" → passes as general_knowledge
+      ├─► Guardrail 3: out-of-scope phrase detection (non-K8s questions only)
+      ├─► Guardrail 4: word coverage check (answer words found in context / answer words)
       │
       └─► QueryResponse { answer, sources, validation, latency_ms }
 ```
@@ -32,7 +36,7 @@ A production-grade RAG (Retrieval-Augmented Generation) Q&A assistant over Kuber
 **Ingestion pipeline** (runs once, or on `--force`):
 
 ```
-K8s doc URLs → httpx fetch → BeautifulSoup clean → word-based chunker (500/50 overlap)
+~50 K8s doc URLs → httpx fetch → BeautifulSoup clean → word-based chunker (500/50 overlap)
     → SentenceTransformer embed → FAISS IndexFlatIP → persist data/faiss.index + data/chunks.pkl
 ```
 
@@ -73,7 +77,7 @@ cp .env.example .env
 
 ### 3. Ingest Kubernetes documentation
 
-This fetches the 18 K8s doc pages, chunks them into 500-word windows, embeds them with `all-MiniLM-L6-v2`, and writes `data/faiss.index` + `data/chunks.pkl`. It is idempotent — re-running without `--force` skips ingestion if the index already exists.
+This fetches ~50 K8s doc pages covering workloads, networking, storage, scheduling, security, and cluster administration, chunks them into 500-word windows, embeds them with `all-MiniLM-L6-v2`, and writes `data/faiss.index` + `data/chunks.pkl`. It is idempotent — re-running without `--force` skips ingestion if the index already exists.
 
 ```bash
 make ingest
@@ -85,7 +89,7 @@ python scripts/ingest.py --force
 Expected output:
 
 ```
-INFO  index_built  chunks=342  index_path=data/faiss.index  ...
+INFO  index_built  chunks=900+  index_path=data/faiss.index  ...
 ```
 
 ### 4. Start the API server
@@ -95,7 +99,21 @@ make serve
 # Equivalent: uvicorn rag_assistant.api.app:create_app --reload --factory --port 8000
 ```
 
-### 5. Smoke test the running server
+### 5. (Optional) Start the web chat UI
+
+A Streamlit chat interface is included for interactive testing. It requires the API server to be running.
+
+```bash
+# Install UI dependencies (one time)
+make install-ui
+
+# Launch at http://localhost:8501
+make ui
+```
+
+Features: streaming responses, conversation history, source cards with confidence scores, latency display, and a sidebar with example questions and API health check.
+
+### 6. Smoke test the running server
 
 ```bash
 # Liveness
@@ -123,7 +141,7 @@ curl -s -X POST http://localhost:8000/v1/query \
 # → "Insufficient context: the Kubernetes documentation does not contain..."
 ```
 
-### 6. Run tests and linting
+### 7. Run tests and linting
 
 ```bash
 make test          # pytest, ≥80% coverage required
@@ -157,7 +175,7 @@ Returns a complete JSON response.
   ],
   "validation": {
     "passed": true,
-    "guardrail_triggered": null,
+    "guardrail_triggered": null,           // or "general_knowledge" | "out_of_context" | "low_overlap" | "low_confidence"
     "confidence_score": 0.87,
     "overlap_score": 0.31
   },
@@ -176,12 +194,14 @@ curl -N -X POST http://localhost:8000/v1/query/stream \
 ```
 
 ```
-data: A Kubernetes Deployment can be scaled
-data:  by updating the replicas field...
+data: "A Kubernetes Deployment can be scaled"
+data: " by updating the replicas field..."
 ...
 event: done
 data: {"sources": [...], "validation": {...}}
 ```
+
+Each token is JSON-encoded in the `data` field to preserve newlines and special characters faithfully across the SSE transport layer. The final `done` event carries the full metadata object (sources, validation, latency).
 
 ### `GET /health`
 
@@ -209,7 +229,7 @@ All settings are read from environment variables (or `.env`):
 | `RETRIEVAL_CONFIDENCE_THRESHOLD` | `0.3` | Min cosine similarity before refusing to answer |
 | `CHUNK_SIZE_WORDS` | `500` | Words per chunk |
 | `CHUNK_OVERLAP_WORDS` | `50` | Overlap between adjacent chunks |
-| `GUARDRAIL_OVERLAP_THRESHOLD` | `0.15` | Min Jaccard overlap (answer vs. context) |
+| `GUARDRAIL_OVERLAP_THRESHOLD` | `0.15` | Min word coverage (answer words found in context ÷ answer words) |
 | `RATE_LIMIT_PER_MINUTE` | `10` | Requests per minute per IP |
 | `LOG_LEVEL` | `INFO` | Structured log level |
 
@@ -404,8 +424,9 @@ helm upgrade --install rag-assistant deploy/helm/rag-assistant/ \
 
 ## Limitations
 
-- **Static corpus**: The FAISS index is built from a fixed set of Kubernetes doc URLs. Re-run `make ingest --force` after adding new URLs to `K8S_DOCS_URLS`.
+- **Static corpus**: The FAISS index is built from ~50 hardcoded Kubernetes doc URLs. Re-run `make ingest-force` after adding new URLs to `_DEFAULT_K8S_URLS` in `config.py`.
+- **Hybrid knowledge**: Topics not in the ingested docs (e.g. node pools, CNI plugins, cloud-provider specifics) are answered from Claude's training knowledge, clearly marked as "Based on general Kubernetes knowledge:". Accuracy for these answers is not doc-verified.
 - **CPU-only embeddings**: `all-MiniLM-L6-v2` runs on CPU (~10 ms/query). GPU acceleration is not configured.
 - **Single-node PVC**: The Helm chart defaults to `ReadWriteOnce`. Multi-replica deployments require a `ReadWriteMany` storage class (e.g., NFS, EFS).
-- **No conversation history**: Each `/v1/query` call is stateless. Follow-up questions do not have access to prior answers.
+- **No conversation history**: Each `/v1/query` call is stateless. Follow-up questions do not have access to prior answers. The Streamlit UI maintains in-memory history within a single browser session only.
 - **Rate limit is in-process**: `slowapi` stores state in memory; it resets on pod restart and does not coordinate across replicas.

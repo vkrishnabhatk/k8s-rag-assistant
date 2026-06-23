@@ -140,7 +140,7 @@ async def query_stream(
         # Guardrail 3: pre-LLM
         conf_check = validator.check_retrieval_confidence(result.max_score)
         if not conf_check.passed:
-            yield {"data": _INSUFFICIENT_CONTEXT_ANSWER}
+            yield {"data": json.dumps(_INSUFFICIENT_CONTEXT_ANSWER)}
             sources_payload = [
                 SourceDoc(
                     url=c.source_url,
@@ -168,7 +168,7 @@ async def query_stream(
         full_answer_parts: list[str] = []
         for token in llm.stream(system_blocks, messages):
             full_answer_parts.append(token)
-            yield {"data": token}
+            yield {"data": json.dumps(token)}
 
         full_answer = "".join(full_answer_parts)
         validation = validator.validate_response(full_answer, result.chunks, result.max_score)

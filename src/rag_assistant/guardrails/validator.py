@@ -9,15 +9,13 @@ from rag_assistant.ingestion.chunker import Chunk
 
 log = structlog.get_logger(__name__)
 
-_OUT_OF_CONTEXT_PHRASES = [
-    "i don't have enough information",
-    "i do not have enough information",
-    "not in the provided context",
-    "cannot find",
-    "no information available",
-    "not mentioned in the context",
-    "the context does not",
-    "context doesn't contain",
+_GENERAL_KNOWLEDGE_MARKER = "based on general kubernetes knowledge:"
+
+_OUT_OF_SCOPE_PHRASES = [
+    "outside the scope of kubernetes",
+    "not related to kubernetes",
+    "unrelated to kubernetes",
+    "outside the scope of",
 ]
 
 
@@ -66,19 +64,21 @@ class GuardrailValidator:
             )
         return result
 
-    def _check_out_of_context(self, answer: str) -> bool:
+    def _check_general_knowledge(self, answer: str) -> bool:
+        return answer.lower().startswith(_GENERAL_KNOWLEDGE_MARKER)
+
+    def _check_out_of_scope(self, answer: str) -> bool:
         lowered = answer.lower()
-        return any(phrase in lowered for phrase in _OUT_OF_CONTEXT_PHRASES)
+        has_phrase = any(phrase in lowered for phrase in _OUT_OF_SCOPE_PHRASES)
+        # Only treat as out-of-scope if it's a short refusal (no substantive content follows)
+        return has_phrase and len(answer.split()) < 30
 
     def _compute_overlap(self, answer: str, chunks: list[Chunk]) -> float:
         answer_words = set(answer.lower().split())
         context_words = set(" ".join(c.text for c in chunks).lower().split())
-        if not answer_words and not context_words:
+        if not answer_words:
             return 1.0
-        union = answer_words | context_words
-        if not union:
-            return 0.0
-        return len(answer_words & context_words) / len(union)
+        return len(answer_words & context_words) / len(answer_words)
 
     def validate_response(
         self,
@@ -93,19 +93,30 @@ class GuardrailValidator:
         """
         overlap = self._compute_overlap(answer, chunks)
 
-        # Guardrail 1: out-of-context detection
-        if self._check_out_of_context(answer):
+        # Guardrail 1: general knowledge fallback — valid answer, not grounded in retrieved docs
+        if self._check_general_knowledge(answer):
+            result = ValidationResult(
+                passed=True,
+                guardrail_triggered="general_knowledge",
+                confidence_score=max_score,
+                overlap_score=overlap,
+            )
+            log.info("guardrail_triggered", guardrail="general_knowledge")
+            return result
+
+        # Guardrail 2: out-of-scope detection (non-K8s question)
+        if self._check_out_of_scope(answer):
             result = ValidationResult(
                 passed=False,
                 guardrail_triggered="out_of_context",
                 confidence_score=max_score,
                 overlap_score=overlap,
-                message="The model indicated it could not answer from the available context.",
+                message="The question is outside the scope of Kubernetes documentation.",
             )
             log.info("guardrail_triggered", guardrail="out_of_context")
             return result
 
-        # Guardrail 2: word overlap check
+        # Guardrail 3: word overlap check
         if overlap < self._overlap_threshold:
             result = ValidationResult(
                 passed=False,
