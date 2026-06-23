@@ -49,6 +49,7 @@ A production-grade RAG (Retrieval-Augmented Generation) Q&A assistant over Kuber
 | Docker Compose | v2 (plugin) | Bundled with Docker Desktop; standalone: [docs.docker.com/compose/install](https://docs.docker.com/compose/install/) |
 | Helm | 3.x | [helm.sh/docs/intro/install](https://helm.sh/docs/intro/install/) |
 | kubectl | any | [kubernetes.io/docs/tasks/tools](https://kubernetes.io/docs/tasks/tools/) — only needed for K8s deploy |
+| kind | 0.20+ | [kind.sigs.k8s.io](https://kind.sigs.k8s.io/) — only needed for local K8s testing |
 
 You also need an [Anthropic API key](https://console.anthropic.com/).
 
@@ -89,7 +90,7 @@ python scripts/ingest.py --force
 Expected output:
 
 ```
-INFO  index_built  chunks=900+  index_path=data/faiss.index  ...
+INFO  index_built  chunks=300+  index_path=data/faiss.index  ...
 ```
 
 ### 4. Start the API server
@@ -336,7 +337,7 @@ helm upgrade --install rag-assistant deploy/helm/rag-assistant/ \
   --wait
 ```
 
-`--wait` blocks until all pods are ready. On a fresh install this includes waiting for the **ingestion Job** to run and write the FAISS index to the PVC before the Deployment passes its readiness probe.
+`--wait` blocks until all pods are ready. On a fresh install the ingestion Job runs first to build the FAISS index. If the API pod starts before ingestion finishes (possible on fast clusters), run `kubectl rollout restart deployment/rag-assistant-rag-assistant` once the job completes to reload the index.
 
 ### Step 4 — verify the deployment
 
@@ -345,13 +346,13 @@ helm upgrade --install rag-assistant deploy/helm/rag-assistant/ \
 kubectl get pod,svc,ingress,pvc,hpa -l app.kubernetes.io/name=rag-assistant
 
 # Watch the ingestion Job logs
-kubectl logs -f job/rag-assistant-ingest
+kubectl logs -f job/rag-assistant-rag-assistant-ingest
 
 # Check API pod readiness
-kubectl rollout status deployment/rag-assistant
+kubectl rollout status deployment/rag-assistant-rag-assistant
 
 # Quick health check via port-forward (no ingress needed)
-kubectl port-forward svc/rag-assistant 8080:8000 &
+kubectl port-forward svc/rag-assistant-rag-assistant 8080:8000 &
 curl http://localhost:8080/health    # → {"status":"ok"}
 curl http://localhost:8080/ready     # → {"status":"ready"}
 
